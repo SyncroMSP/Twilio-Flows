@@ -1,0 +1,238 @@
+{
+  "description": "Appt Reminders replace-me template (Syncro)",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "event": "incomingMessage"
+        },
+        {
+          "event": "incomingCall"
+        },
+        {
+          "next": "confirm_appt",
+          "event": "incomingRequest"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 40,
+          "y": -180
+        }
+      }
+    },
+    {
+      "name": "confirm_appt",
+      "type": "send-and-wait-for-reply",
+      "transitions": [
+        {
+          "next": "split_confirmation",
+          "event": "incomingMessage"
+        },
+        {
+          "event": "timeout"
+        },
+        {
+          "event": "deliveryFailure"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 140,
+          "y": 60
+        },
+        "from": "{{flow.channel.address}}",
+        "body": "Hi {{flow.data.customer.name}}!\nYour appointment is coming up on {{flow.data.appointment.date}} at {{flow.data.appointment.time | split:\" \" | last}}. Please reply \"C\" to confirm and \"X\" to cancel.",
+        "timeout": 3600
+      }
+    },
+    {
+      "name": "split_confirmation",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "send_no_match",
+          "event": "noMatch"
+        },
+        {
+          "next": "confirmation_webhook",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "C",
+              "arguments": [
+                "{{widgets.confirm_appt.inbound.Body}}"
+              ],
+              "type": "equal_to",
+              "value": "C"
+            }
+          ]
+        },
+        {
+          "next": "cancellation_webhook",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "X",
+              "arguments": [
+                "{{widgets.confirm_appt.inbound.Body}}"
+              ],
+              "type": "equal_to",
+              "value": "X"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.confirm_appt.inbound.Body}}",
+        "offset": {
+          "x": 130,
+          "y": 340
+        }
+      }
+    },
+    {
+      "name": "send_confirmation_sms",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -260,
+          "y": 860
+        },
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Thanks! See you at the office."
+      }
+    },
+    {
+      "name": "send_cancellation_sms",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 140,
+          "y": 850
+        },
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "We understand that plans change. Thanks for letting us know!"
+      }
+    },
+    {
+      "name": "send_no_match",
+      "type": "send-message",
+      "transitions": [
+        {
+          "next": "confirm_appt",
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -330,
+          "y": 280
+        },
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "We're sorry, we couldn't understand your response."
+      }
+    },
+    {
+      "name": "confirmation_webhook",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "send_confirmation_sms",
+          "event": "success"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": -260,
+          "y": 650
+        },
+        "method": "POST",
+        "content_type": "application/x-www-form-urlencoded;charset=utf-8",
+        "parameters": [
+          {
+            "value": "replace-me-required-security-token",
+            "key": "token"
+          },
+          {
+            "value": "{{flow.data.appointment.id}}",
+            "key": "appointment_id"
+          },
+          {
+            "value": "confirm",
+            "key": "appointment_action"
+          }
+        ],
+        "url": "https://replace-me-subdomain.syncromsp.com/api/v1/twilio/appointment_confirmation",
+        "timeout": 3600
+      }
+    },
+    {
+      "name": "cancellation_webhook",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "send_cancellation_sms",
+          "event": "success"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 130,
+          "y": 650
+        },
+        "method": "POST",
+        "parameters": [
+          {
+            "value": "replace-me-required-security-token",
+            "key": "token"
+          },
+          {
+            "value": "{{flow.data.appointment.id}}",
+            "key": "appointment_id"
+          },
+          {
+            "value": "cancel",
+            "key": "appointment_action"
+          }
+        ],
+        "url": "https://replace-me-subdomain.syncromsp.com/api/v1/twilio/appointment_confirmation",
+        "timeout": 3600
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}
