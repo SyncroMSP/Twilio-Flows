@@ -43,7 +43,7 @@
           "channel": "{{trigger.message.ChannelSid}}",
           "from": "{{flow.channel.address}}",
           "to": "{{contact.channel.address}}",
-          "body": "Hi {{flow.data.customer.name}}!\n{{flow.data.tech.name | split:\" \" | first | strip}} , your technician, is coming soon for your upcomming appointment at {{flow.data.appointment.time | split:\" \" | last}}. \nSee you soon!",
+          "body": "Hi {{flow.data.customer.name}}!\n{{flow.data.tech.name | split:\" \" | first | strip}}, your technician, is coming soon for your upcomming appointment at {{flow.data.appointment.time | split:\" \" | last}}. \nSee you soon!",
           "media_url": "{{flow.data.tech.image_url}}"
         }
       }
